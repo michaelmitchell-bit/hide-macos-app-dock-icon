@@ -8,6 +8,13 @@ back into the Dock. A small, MIT-licensed command-line tool for macOS.
 > LSUIElement not working · run Mac app without Dock icon · menu-bar-only app ·
 > NSApplicationActivationPolicyAccessory · hide app from ⌘-Tab / app switcher.
 
+## Demo
+
+![The app runs with its window open and active, but has no icon in the macOS Dock](docs/demo.png)
+
+*The app is open and fully usable — its window is focused — yet it has **no icon
+in the Dock** (arrow shows where it would normally appear).*
+
 ## Why this exists
 
 Setting `LSUIElement` (a.k.a. "Application is agent") or `LSBackgroundOnly` in an
