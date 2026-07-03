@@ -1,62 +1,103 @@
-# dockless-agent
+# Hide a macOS App from the Dock (Run Any Mac App as a Background Agent)
 
-Run any macOS app as a background **agent** — no Dock icon, no ⌘-Tab entry —
-even apps that insist on showing themselves in the Dock.
+**Hide any macOS app's Dock icon** and run it as a background **agent** — no Dock
+icon, no ⌘-Tab (app switcher) entry — even stubborn apps that force themselves
+back into the Dock. A small, MIT-licensed command-line tool for macOS.
 
-`LSUIElement`/`LSBackgroundOnly` in an app's `Info.plist` are supposed to hide
-it from the Dock, but many apps override that at runtime by calling
-`-[NSApplication setActivationPolicy:]` (often through a dynamically-registered
-selector, so editing the plist or byte-patching the binary won't reliably stop
-them). `dockless-agent` replaces that method's implementation with a tiny
-injected library, so **every** activation-policy call resolves to
-`Accessory` — the app runs windowed but Dock-less.
+> Keywords: hide macOS app from Dock · remove Dock icon · macOS background agent ·
+> LSUIElement not working · run Mac app without Dock icon · menu-bar-only app ·
+> NSApplicationActivationPolicyAccessory · hide app from ⌘-Tab / app switcher.
 
-## How it works
+## Why this exists
 
-1. `src/dockless.m` swizzles `-[NSApplication setActivationPolicy:]` to always
-   pass `NSApplicationActivationPolicyAccessory`.
-2. `install.sh` builds it into a universal dylib, then adds
-   `LSEnvironment → DYLD_INSERT_LIBRARIES` to the target app's `Info.plist` so
-   the hook loads on every launch, and ad-hoc re-signs the app.
+Setting `LSUIElement` (a.k.a. "Application is agent") or `LSBackgroundOnly` in an
+app's `Info.plist` is the documented way to hide a macOS app from the Dock. But
+**it often doesn't work**, because many apps override it at runtime by calling
+`-[NSApplication setActivationPolicy:]` — frequently through a dynamically
+registered selector, so editing the plist or byte-patching the binary won't
+reliably stop them.
 
-## Usage
+This tool fixes that by replacing the method itself: it injects a tiny library
+that forces **every** `setActivationPolicy:` call to `Accessory`, so the app
+runs windowed but Dock-less no matter how it tries to promote itself.
+
+## Features
+
+- ✅ Removes the Dock icon from any macOS app
+- ✅ Removes the app from the ⌘-Tab app switcher
+- ✅ Windows still open and work normally (Accessory mode, not hidden/prohibited)
+- ✅ Works on apps where `LSUIElement` / "Application is agent" is ignored
+- ✅ Survives app auto-updates (optional watcher)
+- ✅ Universal binary (Apple Silicon + Intel), MIT licensed
+
+## Requirements
+
+- macOS 14 / 15 (tested; likely works on 12+)
+- Xcode Command Line Tools (`xcode-select --install`) for `clang`
+- Admin rights (`sudo`)
+
+## Quick start
 
 ```sh
+git clone https://github.com/michaelmitchell-bit/hide-macos-app-dock-icon.git
+cd hide-macos-app-dock-icon
+
+# Hide any app from the Dock:
 sudo ./install.sh /Applications/SomeApp.app
-# restart the app, then verify:
+
+# Restart the app, then confirm it's now a background agent:
 lsappinfo info -app <bundle-id> | grep type=   # expect type="UIElement"
 ```
 
-Undo:
+Undo it:
 
 ```sh
 sudo ./uninstall.sh /Applications/SomeApp.app
 ```
 
-## Surviving app updates
+## How it works
 
-An app that auto-updates will overwrite its `Info.plist` and revert the change.
-Install a watcher that re-applies it automatically:
+1. `src/dockless.m` swizzles `-[NSApplication setActivationPolicy:]` to always
+   pass `NSApplicationActivationPolicyAccessory`.
+2. `install.sh` compiles it into a universal `.dylib`, adds
+   `LSEnvironment → DYLD_INSERT_LIBRARIES` to the target app's `Info.plist` so
+   the hook loads on every launch, and ad-hoc re-signs the app.
+
+## Keep it working across app updates
+
+Apps that auto-update overwrite their `Info.plist` and revert the change.
+Install a watcher (a root LaunchDaemon) that re-applies it automatically:
 
 ```sh
 sudo ./launchagent/setup-autoreapply.sh /Applications/SomeApp.app
 ```
 
+## FAQ
+
+**"LSUIElement isn't hiding my app from the Dock — why?"**
+The app is almost certainly calling `setActivationPolicy:` at runtime to override
+the plist. This tool intercepts that call. See [Why this exists](#why-this-exists).
+
+**"Will the app's windows still open?"**
+Yes. It uses `Accessory` policy, which keeps windows working — it only removes
+the Dock icon and app-switcher entry. It does not use `Prohibited`, which would
+suppress all UI.
+
+**"Does this need to disable SIP?"**
+No. It ad-hoc re-signs the target app (which disables that app's hardened runtime
+so `DYLD_INSERT_LIBRARIES` is honored). System Integrity Protection stays on.
+
 ## Caveats
 
-- **Re-signing changes the app's code identity.** macOS may ask you to
-  re-grant Privacy permissions (Screen Recording, Accessibility, etc.) the
-  first time after installing.
-- This drops the app's original Developer ID signature in favor of an ad-hoc
-  one, and disables its hardened runtime (required for `DYLD_INSERT_LIBRARIES`
-  to be honored). Only do this to apps you trust on machines you control.
-- Requires the Xcode Command Line Tools (`clang`) and admin rights.
-- Tested on Apple Silicon, macOS 14/15.
+- Re-signing changes the app's code identity, so macOS may ask you to re-grant
+  Privacy permissions (Screen Recording, Accessibility, etc.) once afterward.
+- This replaces the app's Developer ID signature with an ad-hoc one. Only apply
+  it to apps you trust, on machines you control.
 
 ## Scope
 
-This only affects Dock/⌘-Tab visibility (an app's activation policy). It does
-not touch, hide, or suppress any macOS privacy or security indicators.
+This only changes an app's **activation policy** (Dock / ⌘-Tab visibility). It
+does not touch, hide, or suppress any macOS privacy or security indicators.
 
 ## License
 
