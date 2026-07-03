@@ -1,4 +1,4 @@
-# Hide a macOS App from the Dock (Run Any Mac App as a Background Agent)
+# Hide a macOS App from the Dock
 
 **Hide any macOS app's Dock icon** and run it as a background **agent** — no Dock
 icon, no ⌘-Tab (app switcher) entry — even stubborn apps that force themselves
