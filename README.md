@@ -39,7 +39,7 @@ runs windowed but Dock-less no matter how it tries to promote itself.
 
 ## Requirements
 
-- macOS 14 / 15 (tested; likely works on 12+)
+- macOS 14 / 15 (tested; likely works on 12+; macOS 26 not yet tested)
 - Xcode Command Line Tools (`xcode-select --install`) for `clang`
 - Admin rights (`sudo`)
 
@@ -65,7 +65,8 @@ sudo ./uninstall.sh /Applications/SomeApp.app
 ## How it works
 
 1. `src/dockless.m` swizzles `-[NSApplication setActivationPolicy:]` to always
-   pass `NSApplicationActivationPolicyAccessory`.
+   pass `NSApplicationActivationPolicyAccessory`, and sets that policy itself
+   once the app finishes launching (most apps never call it).
 2. `install.sh` compiles it into a universal `.dylib`, adds
    `LSEnvironment → DYLD_INSERT_LIBRARIES` to the target app's `Info.plist` so
    the hook loads on every launch, and ad-hoc re-signs the app.
@@ -93,6 +94,20 @@ suppress all UI.
 **"Does this need to disable SIP?"**
 No. It ad-hoc re-signs the target app (which disables that app's hardened runtime
 so `DYLD_INSERT_LIBRARIES` is honored). System Integrity Protection stays on.
+
+## Which apps work?
+
+Hiding the Dock icon works on any regular AppKit app (native or Electron).
+What varies is whether the app **still works after re-signing**:
+
+| App uses | Result |
+|---|---|
+| Nothing special | ✅ Works |
+| `keychain-access-groups` / app groups | ⚠️ Saved login lost — may need to sign in again or reinstall |
+| App Sandbox | ⚠️ May fail to launch or load the hook |
+
+`install.sh` checks for these and asks before changing anything.
+Known to lose login: ChatGPT (see [#1](https://github.com/michaelmitchell-bit/hide-macos-app-dock-icon/issues/1)).
 
 ## Caveats
 

@@ -7,6 +7,10 @@
 // implementation so every call resolves to NSApplicationActivationPolicyAccessory:
 // no Dock icon, no Cmd-Tab entry, but windows still work.
 //
+// Most apps never call setActivationPolicy: at all (they launch as Regular
+// straight from LaunchServices), so the library also demotes the app itself
+// once launch finishes.
+//
 // Injected via DYLD_INSERT_LIBRARIES (see install.sh, which wires it into the
 // target app's Info.plist LSEnvironment so it applies on every launch).
 #import <AppKit/AppKit.h>
@@ -28,4 +32,10 @@ static void dockless_install(void) {
     if (!m) return;
     orig_setActivationPolicy = (BOOL (*)(id, SEL, NSInteger))method_getImplementation(m);
     method_setImplementation(m, (IMP)forced_setActivationPolicy);
+
+    [[NSNotificationCenter defaultCenter]
+        addObserverForName:NSApplicationDidFinishLaunchingNotification
+                    object:nil queue:nil usingBlock:^(NSNotification *n) {
+        [(NSApplication *)n.object setActivationPolicy:NSApplicationActivationPolicyAccessory];
+    }];
 }
