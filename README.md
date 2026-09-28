@@ -1,4 +1,4 @@
-# Hide a macOS App from the Dock
+# Dockless — Hide Any macOS App from the Dock
 
 **Hide any macOS app's Dock icon** and run it as a background **agent** — no Dock
 icon, no ⌘-Tab (app switcher) entry — even stubborn apps that force themselves
@@ -46,8 +46,8 @@ runs windowed but Dock-less no matter how it tries to promote itself.
 ## Quick start
 
 ```sh
-git clone https://github.com/michaelmitchell-bit/hide-macos-app-dock-icon.git
-cd hide-macos-app-dock-icon
+git clone https://github.com/michaelmitchell-bit/dockless.git
+cd dockless
 
 # Hide any app from the Dock:
 sudo ./install.sh /Applications/SomeApp.app
@@ -107,7 +107,7 @@ What varies is whether the app **still works after re-signing**:
 | App Sandbox | ⚠️ May fail to launch or load the hook |
 
 `install.sh` checks for these and asks before changing anything.
-Known to lose login: ChatGPT (see [#1](https://github.com/michaelmitchell-bit/hide-macos-app-dock-icon/issues/1)).
+Known to lose login: ChatGPT (see [#1](https://github.com/michaelmitchell-bit/dockless/issues/1)).
 
 ## Caveats
 

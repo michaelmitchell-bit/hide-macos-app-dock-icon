@@ -1,5 +1,5 @@
 #!/bin/bash
-# dockless-agent — run any macOS app with no Dock icon / no Cmd-Tab entry.
+# dockless — run any macOS app with no Dock icon / no Cmd-Tab entry.
 #
 # Usage:  sudo ./install.sh /Applications/SomeApp.app
 #
