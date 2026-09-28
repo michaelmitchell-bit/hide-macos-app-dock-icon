@@ -35,6 +35,23 @@ SRC="$(cd "$(dirname "$0")" && pwd)/src/dockless.m"
 echo "==> Target : $APP"
 echo "==> Dylib  : $DYLIB"
 
+# Re-signing ad-hoc drops the developer's Team ID. Apps that keep logins in a
+# Keychain access group or share an app group can no longer read them.
+ENTS="$(codesign -d --entitlements - --xml "$APP" 2>/dev/null || true)"
+RISKY=()
+for key in keychain-access-groups com.apple.security.application-groups \
+           com.apple.security.app-sandbox; do
+  [[ "$ENTS" == *"<key>$key</key>"* ]] && RISKY+=("$key")
+done
+if (( ${#RISKY[@]} )); then
+  echo "!!  This app uses: ${RISKY[*]}"
+  echo "!!  Re-signing may log you out or break it (you may need to reinstall it)."
+  if [[ -t 0 ]]; then
+    read -r -p "    Continue anyway? [y/N] " reply
+    [[ "$reply" == [yY]* ]] || { echo "Aborted."; exit 1; }
+  fi
+fi
+
 echo "==> Building dylib"
 mkdir -p /usr/local/lib
 clang -arch arm64 -arch x86_64 -dynamiclib \
